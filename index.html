@@ -1221,13 +1221,26 @@ function renderRedes(){
 function contactUrl(){
   return location.origin + location.pathname.replace(/index\.html$/,'') + 'contacto.html';
 }
-function generateQR(){
+function generateQR(intentos){
+  intentos = intentos || 0;
   const url = contactUrl();
   document.getElementById('qr-url').textContent = url;
   const canvas = document.getElementById('qr-canvas');
   if(window.QRCode && canvas){
-    QRCode.toCanvas(canvas, url, { width:120, margin:1, color:{ dark:'#0b0b0c', light:'#ffffff' } }, function(err){ if(err) console.error(err); });
+    QRCode.toCanvas(canvas, url, { width:120, margin:1, color:{ dark:'#0b0b0c', light:'#ffffff' } }, function(err){
+      if(err){ console.error(err); mostrarFallbackQR(url); }
+    });
+    return;
   }
+  if(intentos < 20){
+    setTimeout(()=>generateQR(intentos+1), 250); // la librería puede tardar un momento en cargar
+  } else {
+    mostrarFallbackQR(url); // no se ha podido cargar la librería del QR (red, bloqueador...)
+  }
+}
+function mostrarFallbackQR(url){
+  const wrap = document.getElementById('qr-canvas').parentElement;
+  wrap.innerHTML = `<a href="${esc(url)}" target="_blank" class="text-[11px] text-charcoal-900 underline break-all p-2 block max-w-[120px]">${esc(url)}</a>`;
 }
 document.getElementById('btn-copy-url').addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(contactUrl()); const b=document.getElementById('btn-copy-url'); const old=b.textContent; b.textContent='¡Copiado!'; setTimeout(()=>b.textContent=old, 1500); }
