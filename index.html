@@ -97,6 +97,7 @@
   .modal-card h3{ font-family:'Oswald',sans-serif; font-size:22px; text-transform:uppercase; letter-spacing:.03em; color:#f4f1ea; margin:0; }
 
   .checklist{ max-height:230px; overflow-y:auto; border:1px solid #2c2c30; border-radius:6px; background:#0b0b0c; }
+  #redes-links svg{ width:100%; height:100%; display:block; }
   .check-row{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-bottom:1px solid #2c2c30; cursor:pointer; }
   .check-row:last-child{ border-bottom:none; }
   .check-row input{ width:auto; }
@@ -110,13 +111,11 @@
 <div id="app" class="min-h-screen flex">
 
   <!-- ===== SIDEBAR ===== -->
-  <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-64 shrink-0 bg-charcoal-900 border-r border-charcoal-700 flex flex-col -translate-x-full md:translate-x-0 transition-transform duration-200 ease-out">
-    <div class="px-6 pt-7 pb-5 border-b border-charcoal-700">
-      <div class="flex items-center gap-2">
-        <i data-lucide="guitar" class="w-6 h-6 text-blood-400"></i>
-        <h1 class="font-display text-2xl tracking-wide text-zinc-100 uppercase">Walnait</h1>
-      </div>
-      <p class="text-xs text-silver-500 mt-1 tracking-wide">Panel de gestión del grupo</p>
+  <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 shrink-0 bg-charcoal-900 border-r border-charcoal-700 flex flex-col -translate-x-full md:translate-x-0 transition-transform duration-200 ease-out">
+    <div class="px-5 pt-8 pb-6 border-b border-charcoal-700">
+      <i data-lucide="guitar" class="w-8 h-8 text-blood-400 mb-1"></i>
+      <h1 class="font-display text-6xl leading-none text-zinc-100 uppercase">Wal<span class="text-blood-400">nait</span></h1>
+      <p class="text-xs text-silver-500 mt-2 tracking-wide">Panel de gestión del grupo</p>
     </div>
     <nav class="flex-1 py-4 px-2 space-y-1">
       <button data-view="dashboard" class="nav-link active w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-zinc-300">
@@ -161,9 +160,9 @@
 
   <!-- ===== MAIN ===== -->
   <div class="flex-1 min-w-0 flex flex-col">
-    <header class="md:hidden sticky top-0 z-20 bg-charcoal-900/95 backdrop-blur border-b border-charcoal-700 px-4 py-3 flex items-center justify-between">
-      <button id="menuBtn" class="p-2 -ml-2 text-zinc-300"><i data-lucide="menu" class="w-6 h-6"></i></button>
-      <div class="flex items-center gap-2"><i data-lucide="guitar" class="w-5 h-5 text-blood-400"></i><span class="font-display text-lg tracking-wide text-zinc-100 uppercase">Walnait</span></div>
+    <header class="md:hidden sticky top-0 z-20 bg-charcoal-900/95 backdrop-blur border-b border-charcoal-700 px-4 py-2.5 flex items-center justify-between">
+      <button id="menuBtn" class="p-2 -ml-2 text-zinc-300 shrink-0"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <div class="flex items-center gap-1.5"><i data-lucide="guitar" class="w-7 h-7 text-blood-400 shrink-0"></i><span class="font-display text-4xl leading-none text-zinc-100 uppercase">Wal<span class="text-blood-400">nait</span></span></div>
       <div class="w-9"></div>
     </header>
 
@@ -488,12 +487,19 @@ const TESOREROS = ["charly.valero@gmail.com", "javier_figueroa@hotmail.com"];
 /* Enlaces a vuestras redes sociales — rellena las URL que uséis y borra
    las líneas de las que no tengáis (o déjalas, no se mostrará el icono
    si la URL sigue siendo "#"). */
+const SOCIAL_SVG = {
+  instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>',
+  spotify: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="16" cy="16" r="3"></circle></svg>',
+  youtube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>',
+  facebook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-1v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="16" cy="15" r="3"></circle></svg>'
+};
 const REDES = [
   { nombre:'Instagram', icon:'instagram', url:'https://instagram.com/walnait_rock' },
-  { nombre:'Spotify',   icon:'music-2',   url:'#' },
+  { nombre:'Spotify',   icon:'spotify',   url:'#' },
   { nombre:'YouTube',   icon:'youtube',   url:'https://www.youtube.com/@walnait9850' },
   { nombre:'Facebook',  icon:'facebook',  url:'#' },
-  { nombre:'TikTok',    icon:'video',     url:'#' },
+  { nombre:'TikTok',    icon:'tiktok',    url:'#' },
 ];
 /* ============================================================== */
 
@@ -1205,9 +1211,8 @@ function renderRedes(){
   box.innerHTML = activas.map(r => `
     <a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.nombre)}"
        class="w-8 h-8 rounded-md bg-charcoal-800 border border-charcoal-700 flex items-center justify-center text-silver-400 hover:text-gold-400 hover:border-gold-500/40 transition-colors">
-      <i data-lucide="${r.icon}" class="w-4 h-4"></i>
+      <span class="w-4 h-4 block">${SOCIAL_SVG[r.icon] || ''}</span>
     </a>`).join('');
-  lucide.createIcons();
 }
 
 /* ---------- CONSULTAS (QR de contacto) ---------- */
