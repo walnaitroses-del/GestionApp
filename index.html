@@ -864,8 +864,11 @@ document.getElementById('save-ensayo').addEventListener('click', async ()=>{
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
 
+function attKey(){
+  return (myName||'').trim().replace(/[.\/#\[\]$]/g,'_') || myId;
+}
 async function setAsistencia(ensId, estado){
-  try{ await updateDoc(doc(db,'ensayos',ensId), { ['asistencia.'+myId]: estado }); }
+  try{ await updateDoc(doc(db,'ensayos',ensId), { ['asistencia.'+attKey()]: estado }); }
   catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 }
 
@@ -873,7 +876,7 @@ function ensayoCard(d, {compact=false}={}){
   const r = d.data();
   const today = new Date().toISOString().slice(0,10);
   const past = r.fecha < today;
-  const mi = (r.asistencia && r.asistencia[myId]) || 'pend';
+  const mi = (r.asistencia && r.asistencia[attKey()]) || 'pend';
   const confirmados = r.asistencia ? Object.values(r.asistencia).filter(v=>v==='voy').length : 0;
   const total = r.asistencia ? Object.keys(r.asistencia).length : 0;
   const songsCount = (r.cancionesIds||[]).length;
@@ -906,7 +909,7 @@ function wireEnsayoCards(container){
       btn.addEventListener('click', (ev)=>{
         ev.stopPropagation();
         const d = ensayosDocs.find(x=>x.id===id); if(!d) return;
-        const current = (d.data().asistencia && d.data().asistencia[myId]) || 'pend';
+        const current = (d.data().asistencia && d.data().asistencia[attKey()]) || 'pend';
         const choice = btn.dataset.choice;
         setAsistencia(id, current===choice ? 'pend' : choice);
       });
@@ -1025,10 +1028,9 @@ function renderDashboardKpis(){
   if(ne){
     const r = ne.data(); const asis = r.asistencia||{};
     const entries = Object.entries(asis);
-    chipsEl.innerHTML = entries.length ? entries.map(([uid,st])=>{
-      const nm = nameFor(uid, '');
+    chipsEl.innerHTML = entries.length ? entries.map(([nombre,st])=>{
       const cls = st==='voy' ? 'border-emerald-700 text-emerald-400' : 'border-blood-700 text-blood-400';
-      return `<span class="text-[11px] px-2 py-1 rounded-full border ${cls}">${esc(nm||'Alguien')}</span>`;
+      return `<span class="text-[11px] px-2 py-1 rounded-full border ${cls}">${esc(nombre||'Alguien')}</span>`;
     }).join('') : '<span class="text-xs text-silver-500">Nadie ha confirmado todavía</span>';
     const voy = entries.filter(([,v])=>v==='voy').length;
     document.getElementById('kpi-asistencia-count').textContent = `${voy} confirmado${voy===1?'':'s'} · ${fmtDate(r.fecha)}`;
@@ -1297,7 +1299,20 @@ onAuthStateChanged(auth, async (u)=>{
 
 onSnapshot(collection(db,'finanzas'), snap=>{ finanzasDocs = snap.docs; renderCaja(); });
 onSnapshot(collection(db,'repertorio'), snap=>{ repertorioDocs = snap.docs; renderSetlist(); renderEnsayos(); refreshEnsEditorIfOpen(); });
-onSnapshot(collection(db,'ensayos'), snap=>{ ensayosDocs = snap.docs; renderEnsayos(); refreshEnsEditorIfOpen(); });
+const migratedAsistencia = new Set();
+async function limpiarAsistenciaAntigua(){
+  for(const d of ensayosDocs){
+    if(migratedAsistencia.has(d.id)) continue;
+    const asis = d.data().asistencia || {};
+    const keys = Object.keys(asis);
+    const tieneClavesAntiguas = keys.some(k => k.length > 15); // los uid anónimos de Firebase son largos; los nombres no
+    if(tieneClavesAntiguas){
+      migratedAsistencia.add(d.id);
+      try{ await updateDoc(doc(db,'ensayos', d.id), { asistencia:{} }); }catch(e){}
+    }
+  }
+}
+onSnapshot(collection(db,'ensayos'), snap=>{ ensayosDocs = snap.docs; renderEnsayos(); refreshEnsEditorIfOpen(); limpiarAsistenciaAntigua(); });
 onSnapshot(collection(db,'conciertos'), snap=>{ conciertosDocs = snap.docs; renderBolos(); renderDashboardKpis(); });
 onSnapshot(collection(db,'inventario'), snap=>{ inventarioDocs = snap.docs; renderInventario(); });
 onSnapshot(collection(db,'compras'), snap=>{ comprasDocs = snap.docs; renderCompras(); });
