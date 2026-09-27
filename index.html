@@ -165,6 +165,15 @@
     margin-top:10px; background:var(--accent); color:#fff; border:none; border-radius:8px;
     padding:9px 14px; font-weight:700; cursor:pointer; font-size:13px;
   }
+  .buy-row{display:flex; align-items:flex-start; gap:10px; padding:12px 0; border-bottom:1px solid var(--border);}
+  .buy-row:last-child{border-bottom:none;}
+  .buy-check{
+    width:24px; height:24px; border-radius:50%; border:2px solid var(--border); background:none;
+    flex-shrink:0; cursor:pointer; margin-top:1px;
+  }
+  .buy-row.done .buy-title{text-decoration:line-through; color:var(--text-dim);}
+  .buy-title{font-weight:600; font-size:15px;}
+  .buy-notes{color:var(--text-dim); font-size:12px; margin-top:2px; white-space:pre-wrap;}
 </style>
 </head>
 <body>
@@ -182,6 +191,8 @@
     <button class="tab-btn active" data-tab="caja">Caja</button>
     <button class="tab-btn" data-tab="repertorio">Repertorio</button>
     <button class="tab-btn" data-tab="ensayos">Ensayos</button>
+    <button class="tab-btn" data-tab="conciertos">Conciertos</button>
+    <button class="tab-btn" data-tab="inventario">Inventario</button>
   </nav>
 </header>
 
@@ -239,6 +250,38 @@
     </div>
     <div id="ens-list"></div>
     <div class="empty" id="ens-empty" style="display:none;">Aún no hay ensayos programados.</div>
+  </section>
+
+  <!-- CONCIERTOS -->
+  <section class="tab" id="tab-conciertos">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="row">
+        <div>
+          <div style="font-weight:700; font-size:15px;">Próximos conciertos</div>
+          <div class="tx-meta">Cualquiera puede añadir una fecha</div>
+        </div>
+      </div>
+    </div>
+    <div id="conc-list"></div>
+    <div class="empty" id="conc-empty" style="display:none;">Aún no hay conciertos en el horizonte.</div>
+  </section>
+
+  <!-- INVENTARIO -->
+  <section class="tab" id="tab-inventario">
+    <div class="sort-bar">
+      <button type="button" class="inv-seg-btn active" data-seg="material">Material del grupo</button>
+      <button type="button" class="inv-seg-btn" data-seg="compras">Por comprar</button>
+    </div>
+
+    <div id="inv-seg-material">
+      <div id="inv-list"></div>
+      <div class="empty" id="inv-empty" style="display:none;">Aún no hay material registrado.</div>
+    </div>
+
+    <div id="inv-seg-compras" style="display:none;">
+      <div id="compras-list"></div>
+      <div class="empty" id="compras-empty" style="display:none;">Nada pendiente de comprar.</div>
+    </div>
   </section>
 
 </main>
@@ -320,10 +363,62 @@
   </div>
 </div>
 
+<!-- SHEET: nuevo concierto -->
+<div class="sheet-backdrop" id="sheet-conc">
+  <div class="sheet">
+    <h3>Añadir concierto</h3>
+    <label>Sala / lugar</label>
+    <input id="co-lugar" placeholder="Ej: Sala Bikini">
+    <label>Ciudad</label>
+    <input id="co-ciudad" placeholder="Ej: Barcelona">
+    <label>Fecha</label>
+    <input id="co-fecha" type="date">
+    <label>Hora (opcional)</label>
+    <input id="co-hora" type="time">
+    <label>Estado</label>
+    <select id="co-estado">
+      <option value="confirmado">Confirmado</option>
+      <option value="pendiente">Pendiente de confirmar</option>
+    </select>
+    <label>Notas (opcional)</label>
+    <textarea id="co-notas" placeholder="Caché, contacto, horario de prueba de sonido..."></textarea>
+    <button class="btn-primary" id="save-conc">Guardar</button>
+    <button class="btn-ghost" id="cancel-conc">Cancelar</button>
+  </div>
+</div>
+
+<!-- SHEET: nuevo material -->
+<div class="sheet-backdrop" id="sheet-inv">
+  <div class="sheet">
+    <h3>Añadir material</h3>
+    <label>Nombre</label>
+    <input id="i-nombre" placeholder="Ej: micrófono Shure SM58">
+    <label>Categoría (opcional)</label>
+    <input id="i-categoria" placeholder="Ej: backline, cables, PA...">
+    <label>Notas (opcional)</label>
+    <textarea id="i-notas" placeholder="Estado, dónde está, quién lo tiene..."></textarea>
+    <button class="btn-primary" id="save-inv">Guardar</button>
+    <button class="btn-ghost" id="cancel-inv">Cancelar</button>
+  </div>
+</div>
+
+<!-- SHEET: nueva compra -->
+<div class="sheet-backdrop" id="sheet-compra">
+  <div class="sheet">
+    <h3>Añadir a la lista de compra</h3>
+    <label>Qué hace falta</label>
+    <input id="c-nombre" placeholder="Ej: pedal de bombo nuevo">
+    <label>Notas (opcional)</label>
+    <textarea id="c-notas" placeholder="Marca, presupuesto, urgencia..."></textarea>
+    <button class="btn-primary" id="save-compra">Guardar</button>
+    <button class="btn-ghost" id="cancel-compra">Cancelar</button>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, setDoc, addDoc, updateDoc, onSnapshot, writeBatch
+  getFirestore, collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, onAuthStateChanged,
@@ -354,6 +449,8 @@ const auth = getAuth(app);
 
 let myId=null, myName=localStorage.getItem('walnait_name')||'', canEditFinanzas=false;
 let repertorioDocs=[], ensayosDocs=[], repSort='az', selectedSongIds=new Set();
+let inventarioDocs=[], comprasDocs=[], invSeg='material';
+let conciertosDocs=[];
 let membersCache={};
 
 const eur = n => (Math.round(n*100)/100).toLocaleString('es-ES',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
@@ -416,6 +513,15 @@ function initTabs(){
       document.getElementById('fab').style.display = (btn.dataset.tab==='caja' && !canEditFinanzas) ? 'none' : 'flex';
     });
   });
+  document.querySelectorAll('.inv-seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.inv-seg-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      invSeg = btn.dataset.seg;
+      document.getElementById('inv-seg-material').style.display = invSeg==='material' ? 'block':'none';
+      document.getElementById('inv-seg-compras').style.display = invSeg==='compras' ? 'block':'none';
+    });
+  });
 }
 function initFab(){
   document.getElementById('fab').dataset.tab='caja';
@@ -433,6 +539,12 @@ function initFab(){
       renderChecklist('');
       updateSelectedCount();
       openSheet('sheet-ens');
+    } else if(t==='inventario'){
+      if(invSeg==='material') openSheet('sheet-inv');
+      else openSheet('sheet-compra');
+    } else if(t==='conciertos'){
+      document.getElementById('co-fecha').value = new Date().toISOString().slice(0,10);
+      openSheet('sheet-conc');
     }
   });
 }
@@ -698,10 +810,161 @@ function renderEns(){
   });
 }
 
+// ---- INVENTARIO ----
+function initInvForm(){
+  document.getElementById('cancel-inv').addEventListener('click', ()=>closeSheet('sheet-inv'));
+  document.getElementById('save-inv').addEventListener('click', async ()=>{
+    const nombre = document.getElementById('i-nombre').value.trim();
+    const categoria = document.getElementById('i-categoria').value.trim();
+    const notas = document.getElementById('i-notas').value.trim();
+    if(!nombre) return;
+    try{
+      await addDoc(collection(db,'inventario'), {
+        nombre, categoria, notas, propuestoPorId: myId, propuestoPorNombre: myName,
+        creadoEn: new Date().toISOString()
+      });
+      document.getElementById('i-nombre').value='';
+      document.getElementById('i-categoria').value='';
+      document.getElementById('i-notas').value='';
+      closeSheet('sheet-inv');
+    }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
+  });
+}
+function renderInventario(){
+  const docs = inventarioDocs;
+  const list = document.getElementById('inv-list');
+  document.getElementById('inv-empty').style.display = docs.length? 'none':'block';
+  list.innerHTML='';
+  if(!docs.length) return;
+  const card = document.createElement('div');
+  card.className='card';
+  [...docs].sort((a,b)=>(a.data().nombre||'').localeCompare(b.data().nombre||'')).forEach(d=>{
+    const r = d.data();
+    const propName = nameFor(r.propuestoPorId, r.propuestoPorNombre);
+    const row = document.createElement('div');
+    row.className='song-row';
+    row.innerHTML = `
+      <div class="left">
+        <div class="song-title">${escapeHtml(r.nombre||'')}</div>
+        <div class="song-meta">${r.categoria?escapeHtml(r.categoria)+' · ':''}${r.notas?escapeHtml(r.notas):''}${propName?' · añadido por '+escapeHtml(propName):''}</div>
+      </div>
+    `;
+    card.appendChild(row);
+  });
+  list.appendChild(card);
+}
+
+// ---- LISTA DE COMPRA ----
+function initCompraForm(){
+  document.getElementById('cancel-compra').addEventListener('click', ()=>closeSheet('sheet-compra'));
+  document.getElementById('save-compra').addEventListener('click', async ()=>{
+    const nombre = document.getElementById('c-nombre').value.trim();
+    const notas = document.getElementById('c-notas').value.trim();
+    if(!nombre) return;
+    try{
+      await addDoc(collection(db,'compras'), {
+        nombre, notas, comprado:false, propuestoPorId: myId, propuestoPorNombre: myName,
+        creadoEn: new Date().toISOString()
+      });
+      document.getElementById('c-nombre').value='';
+      document.getElementById('c-notas').value='';
+      closeSheet('sheet-compra');
+    }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
+  });
+}
+async function marcarComprado(d){
+  const r = d.data();
+  try{
+    await addDoc(collection(db,'inventario'), {
+      nombre: r.nombre, categoria:'', notas: r.notas||'',
+      propuestoPorId: myId, propuestoPorNombre: myName,
+      creadoEn: new Date().toISOString()
+    });
+    await deleteDoc(doc(db,'compras', d.id));
+  }catch(e){ alert('No se ha podido marcar como comprado. ('+e.message+')'); }
+}
+function renderCompras(){
+  const docs = comprasDocs;
+  const pendientes = docs.filter(d=>!d.data().comprado);
+  const listP = document.getElementById('compras-list');
+  document.getElementById('compras-empty').style.display = pendientes.length? 'none':'block';
+  listP.innerHTML='';
+  pendientes.sort((a,b)=>(a.data().creadoEn||'').localeCompare(b.data().creadoEn||'')).forEach(d=>{
+    const r = d.data();
+    const propName = nameFor(r.propuestoPorId, r.propuestoPorNombre);
+    const card = document.createElement('div'); card.className='card';
+    const row = document.createElement('div'); row.className='buy-row';
+    row.innerHTML = `
+      <button type="button" class="buy-check" title="Marcar como comprado"></button>
+      <div>
+        <div class="buy-title">${escapeHtml(r.nombre||'')}</div>
+        ${r.notas?`<div class="buy-notes">${escapeHtml(r.notas)}</div>`:''}
+        ${propName?`<div class="buy-notes">Propuesto por ${escapeHtml(propName)}</div>`:''}
+      </div>
+    `;
+    row.querySelector('.buy-check').addEventListener('click', ()=>marcarComprado(d));
+    card.appendChild(row);
+    listP.appendChild(card);
+  });
+}
+
+// ---- CONCIERTOS ----
+function initConcForm(){
+  document.getElementById('cancel-conc').addEventListener('click', ()=>closeSheet('sheet-conc'));
+  document.getElementById('save-conc').addEventListener('click', async ()=>{
+    const lugar = document.getElementById('co-lugar').value.trim();
+    const ciudad = document.getElementById('co-ciudad').value.trim();
+    const fecha = document.getElementById('co-fecha').value;
+    const hora = document.getElementById('co-hora').value;
+    const estado = document.getElementById('co-estado').value;
+    const notas = document.getElementById('co-notas').value.trim();
+    if(!lugar || !fecha) return;
+    try{
+      await addDoc(collection(db,'conciertos'), {
+        lugar, ciudad, fecha, hora, estado, notas,
+        propuestoPorId: myId, propuestoPorNombre: myName,
+        creadoEn: new Date().toISOString()
+      });
+      document.getElementById('co-lugar').value='';
+      document.getElementById('co-ciudad').value='';
+      document.getElementById('co-notas').value='';
+      closeSheet('sheet-conc');
+    }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
+  });
+}
+function renderConciertos(){
+  const docs = conciertosDocs;
+  const list = document.getElementById('conc-list');
+  document.getElementById('conc-empty').style.display = docs.length? 'none':'block';
+  list.innerHTML='';
+  const today = new Date().toISOString().slice(0,10);
+  [...docs].sort((a,b)=>(a.data().fecha||'').localeCompare(b.data().fecha||'')).forEach(d=>{
+    const r = d.data();
+    const propName = nameFor(r.propuestoPorId, r.propuestoPorNombre);
+    const el = document.createElement('div');
+    el.className='card';
+    const past = r.fecha < today;
+    el.style.opacity = past ? '0.55' : '1';
+    el.innerHTML = `
+      <div class="row" style="align-items:flex-start;">
+        <div>
+          <div class="tx-concept">${escapeHtml(r.lugar||'')}${r.ciudad?' · '+escapeHtml(r.ciudad):''}</div>
+          <div class="tx-meta" style="margin-top:2px;">${fmtDate(r.fecha)}${r.hora?' · '+r.hora:''}</div>
+          ${r.notas?`<div class="tx-meta" style="margin-top:6px; white-space:pre-wrap;">${escapeHtml(r.notas)}</div>`:''}
+        </div>
+        <span class="pill" style="${r.estado==='confirmado'?'color:var(--income); border-color:var(--income);':''}">${r.estado==='confirmado'?'Confirmado':'Pendiente'}</span>
+      </div>
+      ${propName?`<div class="tx-meta" style="margin-top:8px;">Añadido por ${escapeHtml(propName)}</div>`:''}
+    `;
+    list.appendChild(el);
+  });
+}
+
 // ---- BOOT ----
 async function boot(){
   initTabs(); initFab(); initName(); initTreasurer();
   initCajaForm(); initRepForm(); initEnsForm(); initSortBar(); initSeed();
+  initInvForm(); initCompraForm(); initConcForm();
 
   onSnapshot(collection(db,'members'), snap=>{
     snap.forEach(d=>{ membersCache[d.id] = d.data(); });
@@ -728,6 +991,9 @@ async function boot(){
   onSnapshot(collection(db,'finanzas'), snap=>renderCaja(snap.docs));
   onSnapshot(collection(db,'repertorio'), snap=>{ repertorioDocs = snap.docs; renderRep(); renderEns(); });
   onSnapshot(collection(db,'ensayos'), snap=>{ ensayosDocs = snap.docs; renderRep(); renderEns(); });
+  onSnapshot(collection(db,'inventario'), snap=>{ inventarioDocs = snap.docs; renderInventario(); });
+  onSnapshot(collection(db,'compras'), snap=>{ comprasDocs = snap.docs; renderCompras(); });
+  onSnapshot(collection(db,'conciertos'), snap=>{ conciertosDocs = snap.docs; renderConciertos(); });
 }
 boot();
 </script>
