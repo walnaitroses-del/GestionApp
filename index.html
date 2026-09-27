@@ -12,7 +12,6 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -284,6 +283,10 @@
             <div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-5"><span class="text-xs uppercase tracking-wide text-silver-500">Ingresos</span><p class="font-display text-2xl text-emerald-400 mt-1" id="fin-in">0,00 €</p></div>
             <div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-5"><span class="text-xs uppercase tracking-wide text-silver-500">Gastos</span><p class="font-display text-2xl text-blood-400 mt-1" id="fin-out">0,00 €</p></div>
           </div>
+          <div class="flex gap-2 mb-4">
+            <button id="btn-export-csv" class="text-[11px] text-silver-400 hover:text-zinc-200 uppercase tracking-wide border border-charcoal-700 rounded px-3 py-1.5 flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Exportar CSV</button>
+            <button id="btn-historial" class="text-[11px] text-silver-400 hover:text-zinc-200 uppercase tracking-wide border border-charcoal-700 rounded px-3 py-1.5 flex items-center gap-1.5"><i data-lucide="history" class="w-3.5 h-3.5"></i> Historial de cambios</button>
+          </div>
           <div id="finanzas-locked" class="hidden rounded-lg border border-dashed border-blood-600/50 bg-blood-600/5 p-3 text-xs text-silver-400 text-center mb-4">Solo el tesorero puede añadir movimientos. Puedes consultar el saldo.</div>
           <div id="tx-list" class="space-y-2"></div>
           <p id="tx-empty" class="hidden text-silver-500 text-sm text-center py-6">Aún no hay movimientos.</p>
@@ -329,11 +332,11 @@
         </div>
 
         <div class="amp-glow rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 flex flex-col sm:flex-row items-center gap-5 shadow-amp">
-          <div class="bg-white p-2 rounded-md shrink-0"><canvas id="qr-canvas"></canvas></div>
+          <div class="bg-white p-2 rounded-md shrink-0"><img src="data:image/png;base64,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" alt="Código QR de contacto" width="120" height="120"></div>
           <div class="min-w-0 text-center sm:text-left">
             <p class="text-sm text-zinc-200 font-medium">Cartel de contacto</p>
             <p class="text-xs text-silver-500 mt-1">Cualquiera que escanee este código llega a un formulario sencillo para escribiros. Los mensajes aparecen aquí abajo.</p>
-            <p class="text-[11px] text-gold-400 mt-2 break-all" id="qr-url">—</p>
+            <p class="text-[11px] text-gold-400 mt-2 break-all" id="qr-url">https://walnaitroses-del.github.io/GestionApp/contacto.html</p>
             <button id="btn-copy-url" class="mt-2 text-[11px] text-silver-400 hover:text-zinc-200 uppercase tracking-wide border border-charcoal-700 rounded px-2 py-1">Copiar enlace</button>
           </div>
         </div>
@@ -372,6 +375,14 @@
   <p class="text-blood-400 text-xs mt-2 min-h-[14px]" id="t-err"></p>
   <button class="btn-primary" id="save-treasurer">Entrar</button>
   <button class="btn-ghost" id="cancel-treasurer">Cancelar</button>
+</div></div>
+
+<div class="modal-backdrop" id="modal-historial"><div class="modal-card" style="max-width:520px;">
+  <h3>Historial de cambios en Caja</h3>
+  <p class="text-xs text-silver-500 mt-2">Cada vez que se edita o elimina un movimiento, se guarda aquí una copia de cómo estaba antes.</p>
+  <div id="historial-list" class="mt-4 space-y-2 max-h-[55vh] overflow-y-auto"></div>
+  <p id="historial-empty" class="hidden text-silver-500 text-sm text-center py-6">Aún no hay cambios registrados.</p>
+  <button class="btn-ghost" id="cancel-historial">Cerrar</button>
 </div></div>
 
 <div class="modal-backdrop" id="modal-caja"><div class="modal-card">
@@ -616,6 +627,13 @@ document.getElementById('fab-finanzas').addEventListener('click', ()=>{
   }
 });
 document.getElementById('cancel-caja').addEventListener('click', ()=>closeModal('modal-caja'));
+async function logHistorialCaja(accion, datosAnteriores){
+  try{
+    await addDoc(collection(db,'finanzas_historial'), {
+      accion, datos: datosAnteriores, modificadoPorId: myId, modificadoPorNombre: myName, modificadoEn: new Date().toISOString()
+    });
+  }catch(e){ console.error('No se ha podido guardar el historial:', e); }
+}
 document.getElementById('save-caja').addEventListener('click', async ()=>{
   const concepto = document.getElementById('f-concepto').value.trim();
   const importe = parseFloat(document.getElementById('f-importe').value);
@@ -623,6 +641,8 @@ document.getElementById('save-caja').addEventListener('click', async ()=>{
   if(!concepto||!importe||importe<=0||!fecha) return;
   try{
     if(editingTxId){
+      const prev = finanzasDocs.find(x=>x.id===editingTxId);
+      if(prev) await logHistorialCaja('editado', prev.data());
       await updateDoc(doc(db,'finanzas',editingTxId), { tipo:txType, concepto, importe, fecha });
     } else {
       await addDoc(collection(db,'finanzas'), { tipo:txType, concepto, importe, fecha, autorId:myId, autorNombre:myName, creadoEn:new Date().toISOString() });
@@ -632,7 +652,11 @@ document.getElementById('save-caja').addEventListener('click', async ()=>{
 });
 armDangerButton(document.getElementById('delete-caja'), async ()=>{
   if(!editingTxId) return;
-  try{ await deleteDoc(doc(db,'finanzas',editingTxId)); closeModal('modal-caja'); editingTxId=null; }
+  try{
+    const prev = finanzasDocs.find(x=>x.id===editingTxId);
+    if(prev) await logHistorialCaja('eliminado', prev.data());
+    await deleteDoc(doc(db,'finanzas',editingTxId)); closeModal('modal-caja'); editingTxId=null;
+  }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
 function openTxEditor(id){
@@ -672,6 +696,56 @@ function renderCaja(){
       el.addEventListener('click', ()=>openTxEditor(el.dataset.tx));
     });
   }
+}
+
+/* ---------- Exportar CSV / Historial de Caja ---------- */
+let historialDocs = [];
+document.getElementById('btn-export-csv').addEventListener('click', ()=>{
+  const rows = [['Fecha','Tipo','Concepto','Importe (€)']];
+  [...finanzasDocs].sort((a,b)=>(a.data().fecha||'').localeCompare(b.data().fecha||'')).forEach(d=>{
+    const r = d.data();
+    rows.push([r.fecha||'', r.tipo||'', r.concepto||'', String(r.importe??'')]);
+  });
+  const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'walnait-caja-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+document.getElementById('btn-historial').addEventListener('click', ()=>{ renderHistorial(); openModal('modal-historial'); });
+document.getElementById('cancel-historial').addEventListener('click', ()=>closeModal('modal-historial'));
+async function restaurarDesdeHistorial(id){
+  const d = historialDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data(); const datos = r.datos || {};
+  try{
+    await addDoc(collection(db,'finanzas'), {
+      tipo: datos.tipo, concepto: datos.concepto, importe: datos.importe, fecha: datos.fecha,
+      autorId: myId, autorNombre: myName, creadoEn: new Date().toISOString()
+    });
+    await deleteDoc(doc(db,'finanzas_historial', id));
+    closeModal('modal-historial');
+  }catch(e){ alert('No se ha podido restaurar. ('+e.message+')'); }
+}
+function renderHistorial(){
+  const sorted = [...historialDocs].sort((a,b)=>(b.data().modificadoEn||'').localeCompare(a.data().modificadoEn||''));
+  document.getElementById('historial-empty').classList.toggle('hidden', sorted.length!==0);
+  document.getElementById('historial-list').innerHTML = sorted.map(d=>{
+    const r = d.data(); const dt = r.datos||{};
+    const fechaCambio = r.modificadoEn ? new Date(r.modificadoEn).toLocaleString('es-ES') : '';
+    return `<div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-3">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-[11px] uppercase tracking-wide ${r.accion==='eliminado'?'text-blood-400':'text-gold-400'}">${r.accion==='eliminado'?'Eliminado':'Editado'}</span>
+        <span class="text-[10px] text-silver-500">${fechaCambio}</span>
+      </div>
+      <p class="text-sm text-zinc-200 mt-1">${esc(dt.concepto||'')} — <span class="${dt.tipo==='ingreso'?'text-emerald-400':'text-blood-400'}">${dt.tipo==='ingreso'?'+':'−'}${eur(Number(dt.importe)||0)}</span></p>
+      <p class="text-[11px] text-silver-500 mt-0.5">${fmtDate(dt.fecha)} · antes de que ${esc(r.modificadoPorNombre||'alguien')} lo cambiara</p>
+      ${canEditFinanzas ? `<button data-restore="${d.id}" class="mt-2 text-[11px] text-gold-400 hover:text-gold-300 uppercase tracking-wide border border-charcoal-700 rounded px-2 py-1">Restaurar este movimiento</button>` : ''}
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-restore]').forEach(btn=>{
+    btn.addEventListener('click', ()=>restaurarDesdeHistorial(btn.dataset.restore));
+  });
 }
 
 /* ---------- CONCIERTOS / BOLOS ---------- */
@@ -1218,32 +1292,9 @@ function renderRedes(){
 }
 
 /* ---------- CONSULTAS (QR de contacto) ---------- */
-function contactUrl(){
-  return location.origin + location.pathname.replace(/index\.html$/,'') + 'contacto.html';
-}
-function generateQR(intentos){
-  intentos = intentos || 0;
-  const url = contactUrl();
-  document.getElementById('qr-url').textContent = url;
-  const canvas = document.getElementById('qr-canvas');
-  if(window.QRCode && canvas){
-    QRCode.toCanvas(canvas, url, { width:120, margin:1, color:{ dark:'#0b0b0c', light:'#ffffff' } }, function(err){
-      if(err){ console.error(err); mostrarFallbackQR(url); }
-    });
-    return;
-  }
-  if(intentos < 20){
-    setTimeout(()=>generateQR(intentos+1), 250); // la librería puede tardar un momento en cargar
-  } else {
-    mostrarFallbackQR(url); // no se ha podido cargar la librería del QR (red, bloqueador...)
-  }
-}
-function mostrarFallbackQR(url){
-  const wrap = document.getElementById('qr-canvas').parentElement;
-  wrap.innerHTML = `<a href="${esc(url)}" target="_blank" class="text-[11px] text-charcoal-900 underline break-all p-2 block max-w-[120px]">${esc(url)}</a>`;
-}
+const CONTACT_URL = 'https://walnaitroses-del.github.io/GestionApp/contacto.html';
 document.getElementById('btn-copy-url').addEventListener('click', async ()=>{
-  try{ await navigator.clipboard.writeText(contactUrl()); const b=document.getElementById('btn-copy-url'); const old=b.textContent; b.textContent='¡Copiado!'; setTimeout(()=>b.textContent=old, 1500); }
+  try{ await navigator.clipboard.writeText(CONTACT_URL); const b=document.getElementById('btn-copy-url'); const old=b.textContent; b.textContent='¡Copiado!'; setTimeout(()=>b.textContent=old, 1500); }
   catch(e){}
 });
 
@@ -1311,6 +1362,7 @@ onAuthStateChanged(auth, async (u)=>{
 });
 
 onSnapshot(collection(db,'finanzas'), snap=>{ finanzasDocs = snap.docs; renderCaja(); });
+onSnapshot(collection(db,'finanzas_historial'), snap=>{ historialDocs = snap.docs; if(document.getElementById('modal-historial').classList.contains('open')) renderHistorial(); });
 onSnapshot(collection(db,'repertorio'), snap=>{ repertorioDocs = snap.docs; renderSetlist(); renderEnsayos(); refreshEnsEditorIfOpen(); });
 const migratedAsistencia = new Set();
 async function limpiarAsistenciaAntigua(){
@@ -1332,7 +1384,6 @@ onSnapshot(collection(db,'compras'), snap=>{ comprasDocs = snap.docs; renderComp
 onSnapshot(collection(db,'consultas'), snap=>{ consultasDocs = snap.docs; renderConsultas(); });
 
 renderRedes();
-generateQR();
 lucide.createIcons();
 </script>
 </body>
