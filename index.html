@@ -193,17 +193,17 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="amp-glow rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
+          <div id="kpi-bolo-card" class="amp-glow cursor-pointer rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
             <div class="flex items-center justify-between"><span class="text-xs uppercase tracking-wide text-silver-500">Próximo bolo</span><i data-lucide="ticket" class="w-4 h-4 text-blood-400"></i></div>
             <p class="font-display text-xl text-zinc-100 mt-2" id="kpi-bolo-lugar">—</p>
             <p class="text-sm text-gold-400 mt-1" id="kpi-bolo-cache">Sin caché registrado</p>
           </div>
-          <div class="amp-glow rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
+          <div id="kpi-asistencia-card" class="amp-glow cursor-pointer rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
             <div class="flex items-center justify-between"><span class="text-xs uppercase tracking-wide text-silver-500">Asistencia próximo ensayo</span><i data-lucide="users" class="w-4 h-4 text-blood-400"></i></div>
             <div id="kpi-asistencia-chips" class="flex flex-wrap gap-1.5 mt-3"></div>
             <p class="text-xs text-silver-500 mt-3" id="kpi-asistencia-count">Sin ensayos programados</p>
           </div>
-          <div class="amp-glow rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
+          <div id="kpi-caja-card" class="amp-glow cursor-pointer rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 shadow-amp">
             <div class="flex items-center justify-between"><span class="text-xs uppercase tracking-wide text-silver-500">Caja de la banda</span><i data-lucide="banknote" class="w-4 h-4 text-blood-400"></i></div>
             <p class="font-display text-3xl text-zinc-100 mt-2" id="kpi-caja">0,00 €</p>
             <p class="text-sm mt-1"><span class="text-emerald-400" id="kpi-ingresos">+0 €</span> <span class="text-blood-400" id="kpi-gastos">−0 €</span></p>
@@ -503,6 +503,27 @@ const auth = getAuth(app);
 lucide.createIcons();
 
 let myId=null, myName=localStorage.getItem('walnait_name')||'', canEditFinanzas=false;
+
+/* Confirmación de borrado sin depender de confirm() nativo (poco fiable en
+   algunos navegadores integrados / vistas previas): primer toque arma el
+   botón, segundo toque en los 3s siguientes ejecuta la acción. */
+function armDangerButton(btn, onConfirm){
+  let armed = false, timer = null;
+  const original = btn.textContent;
+  function reset(){ armed=false; btn.textContent=original; btn.classList.remove('bg-blood-600','text-white'); clearTimeout(timer); }
+  btn.addEventListener('click', ()=>{
+    if(!armed){
+      armed = true;
+      btn.textContent = '¿Seguro? Toca otra vez para eliminar';
+      btn.classList.add('bg-blood-600','text-white');
+      timer = setTimeout(reset, 3000);
+    } else {
+      reset();
+      onConfirm();
+    }
+  });
+  return reset;
+}
 let consultasDocs=[], editingConsultaId=null;
 let repertorioDocs=[], ensayosDocs=[], conciertosDocs=[], inventarioDocs=[], comprasDocs=[];
 let membersCache={}, repSort='az', repFilter='', finSeg='caja', invSeg='material';
@@ -603,9 +624,8 @@ document.getElementById('save-caja').addEventListener('click', async ()=>{
     closeModal('modal-caja');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
-document.getElementById('delete-caja').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-caja'), async ()=>{
   if(!editingTxId) return;
-  if(!confirm('¿Eliminar este movimiento de caja?')) return;
   try{ await deleteDoc(doc(db,'finanzas',editingTxId)); closeModal('modal-caja'); editingTxId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
@@ -669,9 +689,8 @@ document.getElementById('save-concierto').addEventListener('click', async ()=>{
     closeModal('modal-concierto');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
-document.getElementById('delete-concierto').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-concierto'), async ()=>{
   if(!editingConciertoId) return;
-  if(!confirm('¿Eliminar este concierto?')) return;
   try{ await deleteDoc(doc(db,'conciertos',editingConciertoId)); closeModal('modal-concierto'); editingConciertoId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
@@ -744,9 +763,8 @@ document.getElementById('save-cancion').addEventListener('click', async ()=>{
     closeModal('modal-cancion');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
-document.getElementById('delete-cancion').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-cancion'), async ()=>{
   if(!editingCancionId) return;
-  if(!confirm('¿Eliminar esta canción del repertorio?')) return;
   try{ await deleteDoc(doc(db,'repertorio',editingCancionId)); closeModal('modal-cancion'); editingCancionId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
@@ -960,11 +978,8 @@ document.getElementById('save-ens-add').addEventListener('click', async ()=>{
     ensAddSelected = new Set(); document.getElementById('ee-search').value=''; renderEnsEditChecklist(''); updateEnsAddCount();
   }catch(e){ alert('No se ha podido añadir. ('+e.message+')'); }
 });
-document.getElementById('delete-ensayo').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-ensayo'), async ()=>{
   if(!editingEnsayoId) return;
-  const r = currentEditingEnsayo();
-  const label = r ? (fmtDate(r.fecha) + (r.hora? ' · '+r.hora+'h' : '')) : 'este ensayo';
-  if(!confirm('¿Eliminar el ensayo del ' + label + '? Esta acción no se puede deshacer.')) return;
   try{
     await deleteDoc(doc(db,'ensayos',editingEnsayoId));
     closeModal('modal-ensayo-edit');
@@ -979,6 +994,10 @@ function refreshEnsEditorIfOpen(){
 
 /* ---------- Dashboard: hero + KPIs ---------- */
 let countdownTarget = null;
+function nextEnsayo(){
+  const today = new Date().toISOString().slice(0,10);
+  return [...ensayosDocs].filter(d=>d.data().fecha >= today).sort((a,b)=>(a.data().fecha||'').localeCompare(b.data().fecha||''))[0] || null;
+}
 function renderDashboardKpis(){
   const nc = nextConcierto();
   if(nc){
@@ -995,7 +1014,7 @@ function renderDashboardKpis(){
     document.getElementById('kpi-bolo-cache').textContent = 'Sin bolos programados';
     countdownTarget = null;
   }
-  const ne = [...ensayosDocs].filter(d=>d.data().fecha >= new Date().toISOString().slice(0,10)).sort((a,b)=>(a.data().fecha||'').localeCompare(b.data().fecha||''))[0];
+  const ne = nextEnsayo();
   const chipsEl = document.getElementById('kpi-asistencia-chips');
   if(ne){
     const r = ne.data(); const asis = r.asistencia||{};
@@ -1023,6 +1042,32 @@ function updateCountdown(){
   document.querySelector('[data-cd="s"]').textContent = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
 }
 setInterval(updateCountdown, 1000);
+
+/* ---------- Accesos directos desde las tarjetas KPI del Dashboard ---------- */
+document.getElementById('kpi-caja-card').addEventListener('click', ()=>{
+  showView('finanzas');
+  const btn = document.querySelector('.fin-seg-btn[data-seg="caja"]');
+  if(btn && !btn.classList.contains('active')) btn.click();
+});
+document.getElementById('kpi-bolo-card').addEventListener('click', ()=>{
+  showView('finanzas');
+  const btn = document.querySelector('.fin-seg-btn[data-seg="bolos"]');
+  if(btn && !btn.classList.contains('active')) btn.click();
+});
+document.getElementById('kpi-asistencia-card').addEventListener('click', ()=>{
+  const ne = nextEnsayo();
+  showView('ensayos');
+  if(ne){
+    setTimeout(()=>{
+      const el = document.querySelector('#ensayos-full [data-id="'+ne.id+'"]');
+      if(el){
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        el.classList.add('ring-2','ring-gold-400');
+        setTimeout(()=>el.classList.remove('ring-2','ring-gold-400'), 2200);
+      }
+    }, 200);
+  }
+});
 
 /* ---------- INVENTARIO / COMPRAS ---------- */
 let editingMaterialId=null, editingCompraId=null;
@@ -1064,9 +1109,8 @@ document.getElementById('save-material').addEventListener('click', async ()=>{
     closeModal('modal-material');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
-document.getElementById('delete-material').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-material'), async ()=>{
   if(!editingMaterialId) return;
-  if(!confirm('¿Eliminar este material del inventario?')) return;
   try{ await deleteDoc(doc(db,'inventario',editingMaterialId)); closeModal('modal-material'); editingMaterialId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
@@ -1095,9 +1139,8 @@ document.getElementById('save-compra').addEventListener('click', async ()=>{
     closeModal('modal-compra');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
-document.getElementById('delete-compra').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-compra'), async ()=>{
   if(!editingCompraId) return;
-  if(!confirm('¿Eliminar esta propuesta de compra? No pasará al inventario.')) return;
   try{ await deleteDoc(doc(db,'compras',editingCompraId)); closeModal('modal-compra'); editingCompraId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
@@ -1185,9 +1228,8 @@ document.getElementById('btn-copy-url').addEventListener('click', async ()=>{
 });
 
 document.getElementById('cancel-consulta').addEventListener('click', ()=>closeModal('modal-consulta'));
-document.getElementById('delete-consulta').addEventListener('click', async ()=>{
+armDangerButton(document.getElementById('delete-consulta'), async ()=>{
   if(!editingConsultaId) return;
-  if(!confirm('¿Eliminar este mensaje?')) return;
   try{ await deleteDoc(doc(db,'consultas',editingConsultaId)); closeModal('modal-consulta'); editingConsultaId=null; }
   catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
 });
