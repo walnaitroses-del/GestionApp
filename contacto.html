@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contacta con Walnait</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { charcoal:{950:'#0b0b0c',900:'#131315',700:'#2c2c30'}, blood:{600:'#7a1518',500:'#96201f',400:'#b62f2a'}, gold:{400:'#cfa73f'} },
+      fontFamily: { display:['Oswald','sans-serif'], body:['Inter','sans-serif'] }
+    }}
+  }
+</script>
+<style>
+  body{ font-family:'Inter',sans-serif; background:#0b0b0c; }
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none; opacity:.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  label{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#cfa73f; font-weight:600; margin:14px 0 4px; }
+  input,textarea{ width:100%; background:#0b0b0c; border:1px solid #2c2c30; color:#e5e2da; border-radius:6px; padding:11px 12px; font-size:15px; font-family:inherit; }
+  input:focus,textarea:focus{ outline:none; border-color:#96201f; }
+  textarea{ resize:vertical; min-height:100px; }
+  .btn-primary{
+    width:100%; margin-top:20px; background:#96201f; color:#fff; border:1px solid #b62f2a; border-radius:6px;
+    padding:13px; font-size:14px; font-weight:600; cursor:pointer; font-family:'Oswald',sans-serif;
+    text-transform:uppercase; letter-spacing:.06em; transition: box-shadow .2s, background-color .2s;
+  }
+  .btn-primary:hover{ background:#b62f2a; box-shadow:0 0 18px 1px rgba(150,32,31,.4); }
+  .btn-primary:disabled{ opacity:.5; cursor:default; }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-5 text-zinc-300">
+
+  <div class="w-full max-w-md relative z-10">
+    <div class="text-center mb-6">
+      <p class="font-display text-3xl tracking-wide text-zinc-100 uppercase">Wal<span class="text-blood-400">nait</span></p>
+      <p class="text-xs text-silver-500 mt-1 text-zinc-500">Escríbenos, os leemos</p>
+    </div>
+
+    <form id="form" class="bg-charcoal-900 border border-charcoal-700 rounded-lg p-6">
+      <label>Tu nombre</label>
+      <input id="f-nombre" placeholder="¿Cómo te llamas?" required>
+      <label>Email o teléfono (para poder responderte)</label>
+      <input id="f-contacto" placeholder="tucorreo@ejemplo.com" required>
+      <label>Mensaje</label>
+      <textarea id="f-mensaje" placeholder="Cuéntanos qué necesitas: bolo, colaboración, feedback..." required></textarea>
+      <button type="submit" class="btn-primary" id="f-submit">Enviar mensaje</button>
+      <p id="f-status" class="text-xs mt-3 text-center min-h-[16px]"></p>
+    </form>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+/* Misma configuración que index.html — mismo proyecto de Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyDmA_vZMTJKoOSx9OMsPXqHV_yDSLxfHk8",
+  authDomain: "walnaitapp-21e94.firebaseapp.com",
+  projectId: "walnaitapp-21e94",
+  storageBucket: "walnaitapp-21e94.firebasestorage.app",
+  messagingSenderId: "198501900645",
+  appId: "1:198501900645:web:5eb2b5829d781d9fdf418c"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let ready = false;
+onAuthStateChanged(auth, (u)=>{ if(!u){ signInAnonymously(auth); } else { ready = true; } });
+
+document.getElementById('form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const contacto = document.getElementById('f-contacto').value.trim();
+  const mensaje = document.getElementById('f-mensaje').value.trim();
+  const status = document.getElementById('f-status');
+  const btn = document.getElementById('f-submit');
+  if(!nombre || !contacto || !mensaje) return;
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  status.textContent = ''; status.className = 'text-xs mt-3 text-center min-h-[16px]';
+  try{
+    if(!ready){ await new Promise(res=>{ const t=setInterval(()=>{ if(ready){ clearInterval(t); res(); } }, 150); }); }
+    await addDoc(collection(db,'consultas'), { nombre, contacto, mensaje, leido:false, creadoEn:new Date().toISOString() });
+    document.getElementById('form').reset();
+    status.textContent = '¡Mensaje enviado! Gracias, te contestaremos pronto.';
+    status.classList.add('text-emerald-400');
+  }catch(err){
+    status.textContent = 'No se ha podido enviar. Inténtalo de nuevo en un momento.';
+    status.classList.add('text-blood-400');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Enviar mensaje';
+  }
+});
+</script>
+</body>
+</html>

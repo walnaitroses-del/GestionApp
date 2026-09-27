@@ -12,6 +12,7 @@
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -133,7 +134,15 @@
       <button data-view="inventario" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-zinc-300">
         <span class="bar rounded-r"></span><i data-lucide="package" class="w-[18px] h-[18px]"></i> Inventario
       </button>
+      <button data-view="consultas" class="nav-link w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium text-zinc-300 relative">
+        <span class="bar rounded-r"></span><i data-lucide="mail" class="w-[18px] h-[18px]"></i> Consultas
+        <span id="consultas-badge" class="hidden ml-auto bg-blood-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </button>
     </nav>
+    <div class="px-5 pb-3">
+      <p class="text-[10px] uppercase tracking-wide text-silver-500 mb-2">Síguenos</p>
+      <div id="redes-links" class="flex gap-2"></div>
+    </div>
     <div class="px-5 py-5 border-t border-charcoal-700 space-y-2">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-full bg-charcoal-800 border border-charcoal-600 flex items-center justify-center text-xs font-display text-gold-400" id="avatarInit">–</div>
@@ -313,9 +322,41 @@
         <p id="compras-empty" class="hidden text-silver-500 text-sm text-center py-6">Nada pendiente de comprar.</p>
       </section>
 
+      <!-- ================= CONSULTAS ================= -->
+      <section id="view-consultas" class="view space-y-6">
+        <div>
+          <h2 class="font-display text-2xl text-zinc-100 tracking-wide uppercase">Consultas</h2>
+          <p class="text-sm text-silver-500 mt-1">Mensajes recibidos a través del cartel con código QR.</p>
+        </div>
+
+        <div class="amp-glow rounded-lg border border-charcoal-700 bg-charcoal-900 p-5 flex flex-col sm:flex-row items-center gap-5 shadow-amp">
+          <div class="bg-white p-2 rounded-md shrink-0"><canvas id="qr-canvas"></canvas></div>
+          <div class="min-w-0 text-center sm:text-left">
+            <p class="text-sm text-zinc-200 font-medium">Cartel de contacto</p>
+            <p class="text-xs text-silver-500 mt-1">Cualquiera que escanee este código llega a un formulario sencillo para escribiros. Los mensajes aparecen aquí abajo.</p>
+            <p class="text-[11px] text-gold-400 mt-2 break-all" id="qr-url">—</p>
+            <button id="btn-copy-url" class="mt-2 text-[11px] text-silver-400 hover:text-zinc-200 uppercase tracking-wide border border-charcoal-700 rounded px-2 py-1">Copiar enlace</button>
+          </div>
+        </div>
+
+        <div id="consultas-list" class="space-y-2"></div>
+        <p id="consultas-empty" class="hidden text-silver-500 text-sm text-center py-6">Aún no habéis recibido ningún mensaje.</p>
+      </section>
+
     </main>
   </div>
 </div>
+
+<div class="modal-backdrop" id="modal-consulta"><div class="modal-card">
+  <h3>Mensaje</h3>
+  <p class="text-[11px] text-silver-500 mt-3" id="mc-fecha"></p>
+  <p class="text-sm text-zinc-200 mt-3" id="mc-nombre"></p>
+  <p class="text-sm text-gold-400 mt-1" id="mc-contacto"></p>
+  <p class="text-sm text-zinc-300 mt-4 whitespace-pre-wrap leading-relaxed" id="mc-mensaje"></p>
+  <a id="mc-reply" href="#" target="_blank" class="btn-primary block text-center no-underline hidden">Responder</a>
+  <button type="button" id="delete-consulta" class="w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar mensaje</button>
+  <button class="btn-ghost" id="cancel-consulta">Cerrar</button>
+</div></div>
 
 <!-- ===== MODALES ===== -->
 <div class="modal-backdrop" id="modal-name"><div class="modal-card">
@@ -335,7 +376,7 @@
 </div></div>
 
 <div class="modal-backdrop" id="modal-caja"><div class="modal-card">
-  <h3>Nuevo movimiento</h3>
+  <h3 id="modal-caja-title">Nuevo movimiento</h3>
   <div class="flex gap-2 mt-4">
     <button type="button" id="seg-income" class="seg-btn active flex-1 py-2 rounded-md border border-emerald-700 text-emerald-400 text-sm font-semibold">Ingreso</button>
     <button type="button" id="seg-expense" class="seg-btn flex-1 py-2 rounded-md border border-charcoal-700 text-silver-400 text-sm font-semibold">Gasto</button>
@@ -344,11 +385,12 @@
   <label>Importe (€)</label><input id="f-importe" type="number" step="0.01" placeholder="0,00">
   <label>Fecha</label><input id="f-fecha" type="date">
   <button class="btn-primary" id="save-caja">Guardar</button>
+  <button type="button" id="delete-caja" class="hidden w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar movimiento</button>
   <button class="btn-ghost" id="cancel-caja">Cancelar</button>
 </div></div>
 
 <div class="modal-backdrop" id="modal-cancion"><div class="modal-card">
-  <h3>Proponer canción</h3>
+  <h3 id="modal-cancion-title">Proponer canción</h3>
   <label>Título</label><input id="r-titulo" placeholder="Título">
   <label>Artista original</label><input id="r-artista" placeholder="Artista">
   <div class="grid grid-cols-2 gap-3">
@@ -356,6 +398,7 @@
     <div><label>Duración (opcional)</label><input id="r-duracion" placeholder="Ej: 4:32"></div>
   </div>
   <button class="btn-primary" id="save-cancion">Guardar</button>
+  <button type="button" id="delete-cancion" class="hidden w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar canción</button>
   <button class="btn-ghost" id="cancel-cancion">Cancelar</button>
 </div></div>
 
@@ -381,11 +424,12 @@
   <div class="checklist mt-2" id="ee-add-checklist"></div>
   <p class="text-xs text-silver-500 mt-2" id="ee-add-count">0 seleccionadas</p>
   <button class="btn-primary" id="save-ens-add">Añadir al ensayo</button>
+  <button type="button" id="delete-ensayo" class="w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar este ensayo</button>
   <button class="btn-ghost" id="cancel-ens-edit">Cerrar</button>
 </div></div>
 
 <div class="modal-backdrop" id="modal-concierto"><div class="modal-card">
-  <h3>Añadir concierto</h3>
+  <h3 id="modal-concierto-title">Añadir concierto</h3>
   <label>Sala / lugar</label><input id="co-lugar" placeholder="Ej: Sala Bikini">
   <label>Ciudad</label><input id="co-ciudad" placeholder="Ej: Barcelona">
   <div class="grid grid-cols-2 gap-3">
@@ -397,23 +441,26 @@
   <select id="co-estado"><option value="confirmado">Confirmado</option><option value="pendiente">Pendiente de confirmar</option></select>
   <label>Notas (opcional)</label><textarea id="co-notas"></textarea>
   <button class="btn-primary" id="save-concierto">Guardar</button>
+  <button type="button" id="delete-concierto" class="hidden w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar concierto</button>
   <button class="btn-ghost" id="cancel-concierto">Cancelar</button>
 </div></div>
 
 <div class="modal-backdrop" id="modal-material"><div class="modal-card">
-  <h3>Añadir material</h3>
+  <h3 id="modal-material-title">Añadir material</h3>
   <label>Nombre</label><input id="i-nombre" placeholder="Ej: micrófono Shure SM58">
   <label>Categoría (opcional)</label><input id="i-categoria" placeholder="Ej: backline, cables...">
   <label>Notas (opcional)</label><textarea id="i-notas"></textarea>
   <button class="btn-primary" id="save-material">Guardar</button>
+  <button type="button" id="delete-material" class="hidden w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar material</button>
   <button class="btn-ghost" id="cancel-material">Cancelar</button>
 </div></div>
 
 <div class="modal-backdrop" id="modal-compra"><div class="modal-card">
-  <h3>Añadir a la lista de compra</h3>
+  <h3 id="modal-compra-title">Añadir a la lista de compra</h3>
   <label>Qué hace falta</label><input id="c-nombre" placeholder="Ej: pedal de bombo nuevo">
   <label>Notas (opcional)</label><textarea id="c-notas"></textarea>
   <button class="btn-primary" id="save-compra">Guardar</button>
+  <button type="button" id="delete-compra" class="hidden w-full mt-3 border border-blood-600 text-blood-400 rounded-md py-2.5 text-xs font-semibold uppercase tracking-wide hover:bg-blood-600/10">Eliminar propuesta</button>
   <button class="btn-ghost" id="cancel-compra">Cancelar</button>
 </div></div>
 
@@ -437,6 +484,17 @@ const firebaseConfig = {
   appId: "1:198501900645:web:5eb2b5829d781d9fdf418c"
 };
 const TESOREROS = ["charly.valero@gmail.com", "javier_figueroa@hotmail.com"];
+
+/* Enlaces a vuestras redes sociales — rellena las URL que uséis y borra
+   las líneas de las que no tengáis (o déjalas, no se mostrará el icono
+   si la URL sigue siendo "#"). */
+const REDES = [
+  { nombre:'Instagram', icon:'instagram', url:'https://instagram.com/walnait_rock' },
+  { nombre:'Spotify',   icon:'music-2',   url:'#' },
+  { nombre:'YouTube',   icon:'youtube',   url:'https://www.youtube.com/@walnait9850' },
+  { nombre:'Facebook',  icon:'facebook',  url:'#' },
+  { nombre:'TikTok',    icon:'video',     url:'#' },
+];
 /* ============================================================== */
 
 const app = initializeApp(firebaseConfig);
@@ -445,6 +503,7 @@ const auth = getAuth(app);
 lucide.createIcons();
 
 let myId=null, myName=localStorage.getItem('walnait_name')||'', canEditFinanzas=false;
+let consultasDocs=[], editingConsultaId=null;
 let repertorioDocs=[], ensayosDocs=[], conciertosDocs=[], inventarioDocs=[], comprasDocs=[];
 let membersCache={}, repSort='az', repFilter='', finSeg='caja', invSeg='material';
 let editingEnsayoId=null, ensAddSelected=new Set();
@@ -502,22 +561,32 @@ document.getElementById('save-treasurer').addEventListener('click', async ()=>{
 
 /* ---------- CAJA ---------- */
 let txType='ingreso';
-document.getElementById('seg-income').addEventListener('click', ()=>{
-  txType='ingreso';
-  document.getElementById('seg-income').className='seg-btn active flex-1 py-2 rounded-md border border-emerald-700 text-emerald-400 text-sm font-semibold';
-  document.getElementById('seg-expense').className='seg-btn flex-1 py-2 rounded-md border border-charcoal-700 text-silver-400 text-sm font-semibold';
-});
-document.getElementById('seg-expense').addEventListener('click', ()=>{
-  txType='gasto';
-  document.getElementById('seg-expense').className='seg-btn active flex-1 py-2 rounded-md border border-blood-500 text-blood-400 text-sm font-semibold';
-  document.getElementById('seg-income').className='seg-btn flex-1 py-2 rounded-md border border-charcoal-700 text-silver-400 text-sm font-semibold';
-});
+let editingTxId=null;
+function setTxSegUI(type){
+  txType = type;
+  document.getElementById('seg-income').className = 'seg-btn'+(type==='ingreso'?' active':'')+' flex-1 py-2 rounded-md border border-emerald-700 text-emerald-400 text-sm font-semibold';
+  document.getElementById('seg-expense').className = 'seg-btn'+(type==='gasto'?' active':'')+' flex-1 py-2 rounded-md border border-blood-500 text-blood-400 text-sm font-semibold';
+}
+document.getElementById('seg-income').addEventListener('click', ()=>setTxSegUI('ingreso'));
+document.getElementById('seg-expense').addEventListener('click', ()=>setTxSegUI('gasto'));
 document.getElementById('fab-finanzas').addEventListener('click', ()=>{
   if(finSeg==='caja'){
     if(!canEditFinanzas) return;
+    editingTxId = null;
+    document.getElementById('modal-caja-title').textContent = 'Nuevo movimiento';
+    document.getElementById('delete-caja').classList.add('hidden');
+    document.getElementById('f-concepto').value=''; document.getElementById('f-importe').value='';
     document.getElementById('f-fecha').value = new Date().toISOString().slice(0,10);
+    setTxSegUI('ingreso');
     openModal('modal-caja');
-  } else { openModal('modal-concierto'); }
+  } else {
+    editingConciertoId = null;
+    document.getElementById('modal-concierto-title').textContent = 'Añadir concierto';
+    document.getElementById('delete-concierto').classList.add('hidden');
+    ['co-lugar','co-ciudad','co-fecha','co-hora','co-cache','co-notas'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('co-estado').value='confirmado';
+    openModal('modal-concierto');
+  }
 });
 document.getElementById('cancel-caja').addEventListener('click', ()=>closeModal('modal-caja'));
 document.getElementById('save-caja').addEventListener('click', async ()=>{
@@ -526,14 +595,37 @@ document.getElementById('save-caja').addEventListener('click', async ()=>{
   const fecha = document.getElementById('f-fecha').value;
   if(!concepto||!importe||importe<=0||!fecha) return;
   try{
-    await addDoc(collection(db,'finanzas'), { tipo:txType, concepto, importe, fecha, autorId:myId, autorNombre:myName, creadoEn:new Date().toISOString() });
-    document.getElementById('f-concepto').value=''; document.getElementById('f-importe').value=''; closeModal('modal-caja');
+    if(editingTxId){
+      await updateDoc(doc(db,'finanzas',editingTxId), { tipo:txType, concepto, importe, fecha });
+    } else {
+      await addDoc(collection(db,'finanzas'), { tipo:txType, concepto, importe, fecha, autorId:myId, autorNombre:myName, creadoEn:new Date().toISOString() });
+    }
+    closeModal('modal-caja');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
+document.getElementById('delete-caja').addEventListener('click', async ()=>{
+  if(!editingTxId) return;
+  if(!confirm('¿Eliminar este movimiento de caja?')) return;
+  try{ await deleteDoc(doc(db,'finanzas',editingTxId)); closeModal('modal-caja'); editingTxId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+function openTxEditor(id){
+  if(!canEditFinanzas) return;
+  const d = finanzasDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingTxId = id;
+  document.getElementById('modal-caja-title').textContent = 'Editar movimiento';
+  document.getElementById('delete-caja').classList.remove('hidden');
+  document.getElementById('f-concepto').value = r.concepto||'';
+  document.getElementById('f-importe').value = r.importe||'';
+  document.getElementById('f-fecha').value = r.fecha||'';
+  setTxSegUI(r.tipo==='gasto' ? 'gasto' : 'ingreso');
+  openModal('modal-caja');
+}
 function renderCaja(){
   let totalIn=0, totalOut=0;
-  const rows = finanzasDocs.map(d=>d.data()).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  rows.forEach(r=>{ if(r.tipo==='ingreso') totalIn+=Number(r.importe)||0; else totalOut+=Number(r.importe)||0; });
+  const rows = finanzasDocs.slice().sort((a,b)=>(b.data().fecha||'').localeCompare(a.data().fecha||''));
+  rows.forEach(d=>{ const r=d.data(); if(r.tipo==='ingreso') totalIn+=Number(r.importe)||0; else totalOut+=Number(r.importe)||0; });
   document.getElementById('fin-balance').textContent = eur(totalIn-totalOut);
   document.getElementById('fin-in').textContent = eur(totalIn);
   document.getElementById('fin-out').textContent = eur(totalOut);
@@ -542,14 +634,22 @@ function renderCaja(){
   document.getElementById('kpi-gastos').textContent = '−'+eur(totalOut);
   const list = document.getElementById('tx-list');
   document.getElementById('tx-empty').classList.toggle('hidden', rows.length!==0);
-  list.innerHTML = rows.map(r=>`
-    <div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-4 flex items-center justify-between">
+  list.innerHTML = rows.map(d=>{
+    const r = d.data();
+    return `<div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-4 flex items-center justify-between${canEditFinanzas?' cursor-pointer hover:border-gold-500/40':''}" data-tx="${d.id}">
       <div><p class="text-sm text-zinc-200">${esc(r.concepto)}</p><p class="text-xs text-silver-500 mt-0.5">${fmtDate(r.fecha)}</p></div>
       <p class="font-display text-lg ${r.tipo==='ingreso'?'text-emerald-400':'text-blood-400'}">${r.tipo==='ingreso'?'+':'−'}${eur(Number(r.importe)||0)}</p>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  if(canEditFinanzas){
+    list.querySelectorAll('[data-tx]').forEach(el=>{
+      el.addEventListener('click', ()=>openTxEditor(el.dataset.tx));
+    });
+  }
 }
 
 /* ---------- CONCIERTOS / BOLOS ---------- */
+let editingConciertoId=null;
 document.getElementById('cancel-concierto').addEventListener('click', ()=>closeModal('modal-concierto'));
 document.getElementById('save-concierto').addEventListener('click', async ()=>{
   const lugar = document.getElementById('co-lugar').value.trim();
@@ -561,11 +661,35 @@ document.getElementById('save-concierto').addEventListener('click', async ()=>{
   const notas = document.getElementById('co-notas').value.trim();
   if(!lugar||!fecha) return;
   try{
-    await addDoc(collection(db,'conciertos'), { lugar, ciudad, fecha, hora, cache, estado, notas, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
-    ['co-lugar','co-ciudad','co-cache','co-notas'].forEach(id=>document.getElementById(id).value='');
+    if(editingConciertoId){
+      await updateDoc(doc(db,'conciertos',editingConciertoId), { lugar, ciudad, fecha, hora, cache, estado, notas });
+    } else {
+      await addDoc(collection(db,'conciertos'), { lugar, ciudad, fecha, hora, cache, estado, notas, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
+    }
     closeModal('modal-concierto');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
+document.getElementById('delete-concierto').addEventListener('click', async ()=>{
+  if(!editingConciertoId) return;
+  if(!confirm('¿Eliminar este concierto?')) return;
+  try{ await deleteDoc(doc(db,'conciertos',editingConciertoId)); closeModal('modal-concierto'); editingConciertoId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+function openConciertoEditor(id){
+  const d = conciertosDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingConciertoId = id;
+  document.getElementById('modal-concierto-title').textContent = 'Editar concierto';
+  document.getElementById('delete-concierto').classList.remove('hidden');
+  document.getElementById('co-lugar').value = r.lugar||'';
+  document.getElementById('co-ciudad').value = r.ciudad||'';
+  document.getElementById('co-fecha').value = r.fecha||'';
+  document.getElementById('co-hora').value = r.hora||'';
+  document.getElementById('co-cache').value = r.cache||'';
+  document.getElementById('co-estado').value = r.estado||'confirmado';
+  document.getElementById('co-notas').value = r.notas||'';
+  openModal('modal-concierto');
+}
 function nextConcierto(){
   const today = new Date().toISOString().slice(0,10);
   return [...conciertosDocs].filter(d=>d.data().fecha>=today).sort((a,b)=>(a.data().fecha||'').localeCompare(b.data().fecha||''))[0] || null;
@@ -575,11 +699,14 @@ function renderBolos(){
   document.getElementById('bolos-empty').classList.toggle('hidden', list.length!==0);
   document.getElementById('bolos-body').innerHTML = list.map(d=>{
     const r = d.data();
-    return `<tr class="hover:bg-charcoal-900/60"><td class="px-4 py-3 text-zinc-300">${fmtDate(r.fecha)}${r.hora?' · '+r.hora:''}</td>
+    return `<tr class="hover:bg-charcoal-900/60 cursor-pointer" data-bolo="${d.id}"><td class="px-4 py-3 text-zinc-300">${fmtDate(r.fecha)}${r.hora?' · '+r.hora:''}</td>
       <td class="px-4 py-3 text-zinc-200">${esc(r.lugar)}${r.ciudad?', '+esc(r.ciudad):''}</td>
       <td class="px-4 py-3 text-gold-400 font-medium">${r.cache?esc(r.cache):'—'}</td>
       <td class="px-4 py-3 text-right"><span class="badge-${r.estado==='confirmado'?'confirmado':'pendiente'} rounded-full border px-2.5 py-1 text-[11px] font-medium">${r.estado==='confirmado'?'Confirmado':'Pendiente'}</span></td></tr>`;
   }).join('');
+  document.querySelectorAll('[data-bolo]').forEach(el=>{
+    el.addEventListener('click', ()=>openConciertoEditor(el.dataset.bolo));
+  });
 }
 
 /* ---------- Toggle segmentos Finanzas ---------- */
@@ -593,7 +720,14 @@ document.querySelectorAll('.fin-seg-btn').forEach(btn=>{
 });
 
 /* ---------- REPERTORIO / SETLIST ---------- */
-document.getElementById('fab-cancion').addEventListener('click', ()=>openModal('modal-cancion'));
+let editingCancionId=null;
+document.getElementById('fab-cancion').addEventListener('click', ()=>{
+  editingCancionId = null;
+  document.getElementById('modal-cancion-title').textContent = 'Proponer canción';
+  document.getElementById('delete-cancion').classList.add('hidden');
+  ['r-titulo','r-artista','r-tono','r-duracion'].forEach(id=>document.getElementById(id).value='');
+  openModal('modal-cancion');
+});
 document.getElementById('cancel-cancion').addEventListener('click', ()=>closeModal('modal-cancion'));
 document.getElementById('save-cancion').addEventListener('click', async ()=>{
   const titulo = document.getElementById('r-titulo').value.trim();
@@ -602,11 +736,32 @@ document.getElementById('save-cancion').addEventListener('click', async ()=>{
   const duracion = document.getElementById('r-duracion').value.trim();
   if(!titulo) return;
   try{
-    await addDoc(collection(db,'repertorio'), { titulo, artista, tono, duracion, estado:'propuesta', propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
-    ['r-titulo','r-artista','r-tono','r-duracion'].forEach(id=>document.getElementById(id).value='');
+    if(editingCancionId){
+      await updateDoc(doc(db,'repertorio',editingCancionId), { titulo, artista, tono, duracion });
+    } else {
+      await addDoc(collection(db,'repertorio'), { titulo, artista, tono, duracion, estado:'propuesta', propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
+    }
     closeModal('modal-cancion');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
+document.getElementById('delete-cancion').addEventListener('click', async ()=>{
+  if(!editingCancionId) return;
+  if(!confirm('¿Eliminar esta canción del repertorio?')) return;
+  try{ await deleteDoc(doc(db,'repertorio',editingCancionId)); closeModal('modal-cancion'); editingCancionId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+function openCancionEditor(id){
+  const d = repertorioDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingCancionId = id;
+  document.getElementById('modal-cancion-title').textContent = 'Editar canción';
+  document.getElementById('delete-cancion').classList.remove('hidden');
+  document.getElementById('r-titulo').value = r.titulo||'';
+  document.getElementById('r-artista').value = r.artista||'';
+  document.getElementById('r-tono').value = r.tono||'';
+  document.getElementById('r-duracion').value = r.duracion||'';
+  openModal('modal-cancion');
+}
 document.querySelectorAll('.sort-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
@@ -645,7 +800,7 @@ function renderSetlist(){
   document.getElementById('setlist-body').innerHTML = rows.map(d=>{
     const r = d.data(); const n = counts[d.id]||0;
     return `<tr class="hover:bg-charcoal-900/60">
-      <td class="px-4 py-3"><p class="text-zinc-200">${esc(r.titulo)} <span class="text-[10px] text-gold-400 align-middle border border-gold-500/30 rounded px-1.5 py-0.5 ml-1">${n}×</span></p><p class="text-xs text-silver-500">${esc(r.artista)}</p></td>
+      <td class="px-4 py-3 cursor-pointer song-title-cell" data-song="${d.id}"><p class="text-zinc-200">${esc(r.titulo)} <span class="text-[10px] text-gold-400 align-middle border border-gold-500/30 rounded px-1.5 py-0.5 ml-1">${n}×</span></p><p class="text-xs text-silver-500">${esc(r.artista)}</p></td>
       <td class="px-4 py-3 hidden sm:table-cell text-silver-400">${esc(r.tono)||'—'}</td>
       <td class="px-4 py-3 hidden sm:table-cell text-silver-400">${esc(r.duracion)||'—'}</td>
       <td class="px-4 py-3 text-right">
@@ -661,11 +816,16 @@ function renderSetlist(){
       try{ await updateDoc(doc(db,'repertorio',sel.dataset.id), {estado: sel.value}); }catch(e){}
     });
   });
+  document.querySelectorAll('.song-title-cell').forEach(td=>{
+    td.addEventListener('click', ()=>openCancionEditor(td.dataset.song));
+  });
 }
 
 /* ---------- ENSAYOS ---------- */
 document.getElementById('fab-ensayo').addEventListener('click', ()=>{
   document.getElementById('e-fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('e-hora').value = '';
+  document.getElementById('e-notas').value = '';
   openModal('modal-ensayo');
 });
 document.getElementById('cancel-ensayo').addEventListener('click', ()=>closeModal('modal-ensayo'));
@@ -800,6 +960,17 @@ document.getElementById('save-ens-add').addEventListener('click', async ()=>{
     ensAddSelected = new Set(); document.getElementById('ee-search').value=''; renderEnsEditChecklist(''); updateEnsAddCount();
   }catch(e){ alert('No se ha podido añadir. ('+e.message+')'); }
 });
+document.getElementById('delete-ensayo').addEventListener('click', async ()=>{
+  if(!editingEnsayoId) return;
+  const r = currentEditingEnsayo();
+  const label = r ? (fmtDate(r.fecha) + (r.hora? ' · '+r.hora+'h' : '')) : 'este ensayo';
+  if(!confirm('¿Eliminar el ensayo del ' + label + '? Esta acción no se puede deshacer.')) return;
+  try{
+    await deleteDoc(doc(db,'ensayos',editingEnsayoId));
+    closeModal('modal-ensayo-edit');
+    editingEnsayoId = null;
+  }catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
 function refreshEnsEditorIfOpen(){
   if(editingEnsayoId && document.getElementById('modal-ensayo-edit').classList.contains('open')){
     renderEnsEditSelected(); renderEnsEditChecklist(document.getElementById('ee-search').value);
@@ -854,6 +1025,7 @@ function updateCountdown(){
 setInterval(updateCountdown, 1000);
 
 /* ---------- INVENTARIO / COMPRAS ---------- */
+let editingMaterialId=null, editingCompraId=null;
 document.querySelectorAll('.inv-seg-btn').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.inv-seg-btn').forEach(b=>b.classList.remove('active'));
@@ -862,7 +1034,21 @@ document.querySelectorAll('.inv-seg-btn').forEach(btn=>{
     document.getElementById('inv-seg-compras').classList.toggle('hidden', invSeg!=='compras');
   });
 });
-document.getElementById('fab-inventario').addEventListener('click', ()=> openModal(invSeg==='material' ? 'modal-material' : 'modal-compra'));
+document.getElementById('fab-inventario').addEventListener('click', ()=>{
+  if(invSeg==='material'){
+    editingMaterialId = null;
+    document.getElementById('modal-material-title').textContent = 'Añadir material';
+    document.getElementById('delete-material').classList.add('hidden');
+    ['i-nombre','i-categoria','i-notas'].forEach(id=>document.getElementById(id).value='');
+    openModal('modal-material');
+  } else {
+    editingCompraId = null;
+    document.getElementById('modal-compra-title').textContent = 'Añadir a la lista de compra';
+    document.getElementById('delete-compra').classList.add('hidden');
+    ['c-nombre','c-notas'].forEach(id=>document.getElementById(id).value='');
+    openModal('modal-compra');
+  }
+});
 document.getElementById('cancel-material').addEventListener('click', ()=>closeModal('modal-material'));
 document.getElementById('save-material').addEventListener('click', async ()=>{
   const nombre = document.getElementById('i-nombre').value.trim();
@@ -870,22 +1056,61 @@ document.getElementById('save-material').addEventListener('click', async ()=>{
   const notas = document.getElementById('i-notas').value.trim();
   if(!nombre) return;
   try{
-    await addDoc(collection(db,'inventario'), { nombre, categoria, notas, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
-    ['i-nombre','i-categoria','i-notas'].forEach(id=>document.getElementById(id).value='');
+    if(editingMaterialId){
+      await updateDoc(doc(db,'inventario',editingMaterialId), { nombre, categoria, notas });
+    } else {
+      await addDoc(collection(db,'inventario'), { nombre, categoria, notas, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
+    }
     closeModal('modal-material');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
+document.getElementById('delete-material').addEventListener('click', async ()=>{
+  if(!editingMaterialId) return;
+  if(!confirm('¿Eliminar este material del inventario?')) return;
+  try{ await deleteDoc(doc(db,'inventario',editingMaterialId)); closeModal('modal-material'); editingMaterialId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+function openMaterialEditor(id){
+  const d = inventarioDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingMaterialId = id;
+  document.getElementById('modal-material-title').textContent = 'Editar material';
+  document.getElementById('delete-material').classList.remove('hidden');
+  document.getElementById('i-nombre').value = r.nombre||'';
+  document.getElementById('i-categoria').value = r.categoria||'';
+  document.getElementById('i-notas').value = r.notas||'';
+  openModal('modal-material');
+}
 document.getElementById('cancel-compra').addEventListener('click', ()=>closeModal('modal-compra'));
 document.getElementById('save-compra').addEventListener('click', async ()=>{
   const nombre = document.getElementById('c-nombre').value.trim();
   const notas = document.getElementById('c-notas').value.trim();
   if(!nombre) return;
   try{
-    await addDoc(collection(db,'compras'), { nombre, notas, comprado:false, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
-    ['c-nombre','c-notas'].forEach(id=>document.getElementById(id).value='');
+    if(editingCompraId){
+      await updateDoc(doc(db,'compras',editingCompraId), { nombre, notas });
+    } else {
+      await addDoc(collection(db,'compras'), { nombre, notas, comprado:false, propuestoPorId:myId, propuestoPorNombre:myName, creadoEn:new Date().toISOString() });
+    }
     closeModal('modal-compra');
   }catch(e){ alert('No se ha podido guardar. ('+e.message+')'); }
 });
+document.getElementById('delete-compra').addEventListener('click', async ()=>{
+  if(!editingCompraId) return;
+  if(!confirm('¿Eliminar esta propuesta de compra? No pasará al inventario.')) return;
+  try{ await deleteDoc(doc(db,'compras',editingCompraId)); closeModal('modal-compra'); editingCompraId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+function openCompraEditor(id){
+  const d = comprasDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingCompraId = id;
+  document.getElementById('modal-compra-title').textContent = 'Editar propuesta de compra';
+  document.getElementById('delete-compra').classList.remove('hidden');
+  document.getElementById('c-nombre').value = r.nombre||'';
+  document.getElementById('c-notas').value = r.notas||'';
+  openModal('modal-compra');
+}
 async function marcarComprado(d){
   const r = d.data();
   try{
@@ -897,12 +1122,15 @@ function renderInventario(){
   document.getElementById('inv-empty').classList.toggle('hidden', inventarioDocs.length!==0);
   document.getElementById('inv-seg-material').innerHTML = [...inventarioDocs].sort((a,b)=>(a.data().nombre||'').localeCompare(b.data().nombre||'')).map(d=>{
     const r = d.data();
-    return `<div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-4 flex items-start gap-3">
+    return `<div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-4 flex items-start gap-3 cursor-pointer hover:border-gold-500/40" data-mat="${d.id}">
       <div class="w-9 h-9 rounded-md bg-charcoal-800 border border-charcoal-700 flex items-center justify-center shrink-0"><i data-lucide="box" class="w-4 h-4 text-blood-400"></i></div>
       <div class="min-w-0"><p class="text-sm text-zinc-200">${esc(r.nombre)}</p>
       <p class="text-xs text-silver-500 mt-0.5">${esc(r.categoria)||''}${r.notas?(r.categoria?' · ':'')+esc(r.notas):''}</p></div>
     </div>`;
   }).join('');
+  document.querySelectorAll('[data-mat]').forEach(el=>{
+    el.addEventListener('click', ()=>openMaterialEditor(el.dataset.mat));
+  });
   lucide.createIcons();
 }
 function renderCompras(){
@@ -911,12 +1139,95 @@ function renderCompras(){
   document.getElementById('inv-seg-compras').innerHTML = pend.map(d=>{
     const r = d.data();
     return `<div class="rounded-lg border border-charcoal-700 bg-charcoal-900 p-4 flex items-start gap-3">
-      <button class="buy-check w-6 h-6 rounded-full border-2 border-blood-500 shrink-0 mt-0.5" data-id="${d.id}"></button>
-      <div class="min-w-0"><p class="text-sm text-zinc-200">${esc(r.nombre)}</p>${r.notas?`<p class="text-xs text-silver-500 mt-0.5">${esc(r.notas)}</p>`:''}</div>
+      <button class="buy-check w-6 h-6 rounded-full border-2 border-blood-500 shrink-0 mt-0.5" data-id="${d.id}" title="Marcar como comprado"></button>
+      <div class="min-w-0 flex-1 cursor-pointer" data-compra="${d.id}"><p class="text-sm text-zinc-200">${esc(r.nombre)}</p>${r.notas?`<p class="text-xs text-silver-500 mt-0.5">${esc(r.notas)}</p>`:''}</div>
     </div>`;
   }).join('');
   document.querySelectorAll('.buy-check').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ const d = comprasDocs.find(x=>x.id===btn.dataset.id); if(d) marcarComprado(d); });
+    btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); const d = comprasDocs.find(x=>x.id===btn.dataset.id); if(d) marcarComprado(d); });
+  });
+  document.querySelectorAll('[data-compra]').forEach(el=>{
+    el.addEventListener('click', ()=>openCompraEditor(el.dataset.compra));
+  });
+}
+
+/* ---------- REDES SOCIALES ---------- */
+function renderRedes(){
+  const box = document.getElementById('redes-links');
+  const activas = REDES.filter(r => r.url && r.url !== '#');
+  if(!activas.length){
+    box.innerHTML = '<p class="text-[11px] text-silver-600">Añade vuestras URL en el código (REDES)</p>';
+    return;
+  }
+  box.innerHTML = activas.map(r => `
+    <a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.nombre)}"
+       class="w-8 h-8 rounded-md bg-charcoal-800 border border-charcoal-700 flex items-center justify-center text-silver-400 hover:text-gold-400 hover:border-gold-500/40 transition-colors">
+      <i data-lucide="${r.icon}" class="w-4 h-4"></i>
+    </a>`).join('');
+  lucide.createIcons();
+}
+
+/* ---------- CONSULTAS (QR de contacto) ---------- */
+function contactUrl(){
+  return location.origin + location.pathname.replace(/index\.html$/,'') + 'contacto.html';
+}
+function generateQR(){
+  const url = contactUrl();
+  document.getElementById('qr-url').textContent = url;
+  const canvas = document.getElementById('qr-canvas');
+  if(window.QRCode && canvas){
+    QRCode.toCanvas(canvas, url, { width:120, margin:1, color:{ dark:'#0b0b0c', light:'#ffffff' } }, function(err){ if(err) console.error(err); });
+  }
+}
+document.getElementById('btn-copy-url').addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(contactUrl()); const b=document.getElementById('btn-copy-url'); const old=b.textContent; b.textContent='¡Copiado!'; setTimeout(()=>b.textContent=old, 1500); }
+  catch(e){}
+});
+
+document.getElementById('cancel-consulta').addEventListener('click', ()=>closeModal('modal-consulta'));
+document.getElementById('delete-consulta').addEventListener('click', async ()=>{
+  if(!editingConsultaId) return;
+  if(!confirm('¿Eliminar este mensaje?')) return;
+  try{ await deleteDoc(doc(db,'consultas',editingConsultaId)); closeModal('modal-consulta'); editingConsultaId=null; }
+  catch(e){ alert('No se ha podido eliminar. ('+e.message+')'); }
+});
+async function openConsultaDetail(id){
+  const d = consultasDocs.find(x=>x.id===id); if(!d) return;
+  const r = d.data();
+  editingConsultaId = id;
+  document.getElementById('mc-fecha').textContent = r.creadoEn ? new Date(r.creadoEn).toLocaleString('es-ES') : '';
+  document.getElementById('mc-nombre').textContent = r.nombre || 'Anónimo';
+  document.getElementById('mc-contacto').textContent = r.contacto || '';
+  document.getElementById('mc-mensaje').textContent = r.mensaje || '';
+  const replyLink = document.getElementById('mc-reply');
+  const contacto = (r.contacto||'').trim();
+  if(/@/.test(contacto)){ replyLink.href = 'mailto:'+contacto; replyLink.textContent='Responder por email'; replyLink.classList.remove('hidden'); }
+  else if(/^[+\d][\d\s-]{5,}$/.test(contacto)){ replyLink.href = 'https://wa.me/'+contacto.replace(/[^\d]/g,''); replyLink.textContent='Responder por WhatsApp'; replyLink.classList.remove('hidden'); }
+  else { replyLink.classList.add('hidden'); }
+  openModal('modal-consulta');
+  if(!r.leido){ try{ await updateDoc(doc(db,'consultas',id), {leido:true}); }catch(e){} }
+}
+function renderConsultas(){
+  const sorted = [...consultasDocs].sort((a,b)=>(b.data().creadoEn||'').localeCompare(a.data().creadoEn||''));
+  const noLeidos = sorted.filter(d=>!d.data().leido).length;
+  const badge = document.getElementById('consultas-badge');
+  badge.textContent = noLeidos;
+  badge.classList.toggle('hidden', noLeidos===0);
+  document.getElementById('consultas-empty').classList.toggle('hidden', sorted.length!==0);
+  document.getElementById('consultas-list').innerHTML = sorted.map(d=>{
+    const r = d.data();
+    const unread = !r.leido;
+    return `<div class="rounded-lg border ${unread?'border-blood-600/60 bg-charcoal-900':'border-charcoal-700 bg-charcoal-900/60'} p-4 flex items-start gap-3 cursor-pointer hover:border-gold-500/40" data-msg="${d.id}">
+      ${unread? '<span class="w-2 h-2 rounded-full bg-blood-500 mt-1.5 shrink-0"></span>' : '<span class="w-2 h-2 shrink-0"></span>'}
+      <div class="min-w-0 flex-1">
+        <p class="text-sm ${unread?'text-zinc-100 font-semibold':'text-zinc-300'}">${esc(r.nombre||'Anónimo')}</p>
+        <p class="text-xs text-silver-500 mt-0.5 truncate">${esc(r.mensaje||'')}</p>
+      </div>
+      <span class="text-[10px] text-silver-500 shrink-0">${r.creadoEn ? new Date(r.creadoEn).toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : ''}</span>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-msg]').forEach(el=>{
+    el.addEventListener('click', ()=>openConsultaDetail(el.dataset.msg));
   });
 }
 
@@ -943,7 +1254,10 @@ onSnapshot(collection(db,'ensayos'), snap=>{ ensayosDocs = snap.docs; renderEnsa
 onSnapshot(collection(db,'conciertos'), snap=>{ conciertosDocs = snap.docs; renderBolos(); renderDashboardKpis(); });
 onSnapshot(collection(db,'inventario'), snap=>{ inventarioDocs = snap.docs; renderInventario(); });
 onSnapshot(collection(db,'compras'), snap=>{ comprasDocs = snap.docs; renderCompras(); });
+onSnapshot(collection(db,'consultas'), snap=>{ consultasDocs = snap.docs; renderConsultas(); });
 
+renderRedes();
+generateQR();
 lucide.createIcons();
 </script>
 </body>
